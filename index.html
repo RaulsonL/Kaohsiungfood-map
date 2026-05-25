@@ -3,86 +3,126 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>高雄旅遊導航（Google Maps版）</title>
+<title>高雄鹽埕美食</title>
 
 <style>
-body{margin:0;font-family:-apple-system,"Noto Sans TC";background:#f6f6f6;}
-header{background:#ff6b35;color:#fff;padding:12px;text-align:center;font-weight:bold;}
+body{
+  margin:0;
+  font-family:-apple-system,"Noto Sans TC";
+  background:#f6f6f6;
+}
 
-#map{width:100%;height:40vh;border:0;}
+header{
+  background:#ff6b35;
+  color:#fff;
+  padding:12px;
+  text-align:center;
+  font-weight:bold;
+}
+
+#topbar{
+  padding:10px;
+  text-align:center;
+  font-size:14px;
+  color:#666;
+}
 
 .card{
-background:#fff;margin:10px;padding:12px;border-radius:10px;
-box-shadow:0 2px 6px rgba(0,0,0,0.08);
+  background:#fff;
+  margin:10px;
+  padding:12px;
+  border-radius:10px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
 }
 
 .name{font-weight:bold;}
 .addr{font-size:12px;color:#666;margin-top:4px;}
 
-.actions{display:flex;gap:6px;margin-top:8px;}
+.actions{
+  display:flex;
+  gap:6px;
+  margin-top:8px;
+}
 
 a{
-flex:1;text-align:center;padding:8px;
-border-radius:8px;text-decoration:none;font-size:13px;
+  flex:1;
+  text-align:center;
+  padding:8px;
+  border-radius:8px;
+  text-decoration:none;
+  font-size:13px;
 }
 
 .nav{background:#ff6b35;color:#fff;}
 .map{background:#eee;color:#333;}
+.route{background:#4CAF50;color:#fff;}
 </style>
 </head>
 
 <body>
 
-<header>📍 高雄旅遊導航（Google Maps版）</header>
+<header>📍 高雄鹽埕美食</header>
 
-<!-- 📍 Google Maps 地圖（免 API） -->
-<iframe
-id="map"
-loading="lazy"
-src="https://www.google.com/maps/d/u/0/embed?mid=1"
->
-</iframe>
+<div id="topbar">
+👉 點「導航」會直接開 Google Maps App（最穩方式）
+</div>
 
 <div id="list"></div>
 
 <script>
 
 const places = [
-{name:"鹽埕鴨肉意麵",q:"鹽埕鴨肉意麵 高雄市鹽埕區大智路126號"},
-{name:"阿凡沙茶麻醬麵",q:"阿凡沙茶麻醬麵 高雄市鹽埕區大智路107號"},
-{name:"老蔡虱目魚粥",q:"老蔡虱目魚粥 高雄市鹽埕區瀨南街201號"},
-{name:"阿財雞絲麵",q:"阿財雞絲麵 高雄市鹽埕區壽星街11號"},
-{name:"鴨肉本",q:"鴨肉本 高雄市鹽埕區富野路107號"},
-{name:"鴨肉珍",q:"鴨肉珍 高雄市鹽埕區大公路55號"},
-{name:"阿英排骨飯",q:"阿英排骨飯 高雄市鹽埕區富野路79-2號"},
-{name:"汕頭陽春麵",q:"汕頭陽春麵 高雄市鹽埕區壽星街12號"},
-{name:"天天沙茶火鍋",q:"天天沙茶火鍋 高雄市七賢三路240號"},
-{name:"阿姨蛋餅",q:"阿姨蛋餅 高雄市鼓山區鼓山一路5號1號"},
-{name:"田記豆漿",q:"田記豆漿 高雄市鹽埕區新樂街75之3號"},
-{name:"巴堂蜂蜜蛋糕",q:"巴堂蜂蜜蛋糕 高雄市鹽埕區大勇路127號"},
-{name:"樺達奶茶",q:"樺達奶茶 高雄市鹽埕區新樂街101號"}
+{name:"鹽埕鴨肉意麵",q:"高雄市鹽埕區大智路126號"},
+{name:"阿凡沙茶麻醬麵",q:"高雄市鹽埕區大智路107號"},
+{name:"老蔡虱目魚粥",q:"高雄市鹽埕區瀨南街201號"},
+{name:"阿財雞絲麵",q:"高雄市鹽埕區壽星街11號"},
+{name:"鴨肉本",q:"高雄市鹽埕區富野路107號"},
+{name:"鴨肉珍",q:"高雄市鹽埕區大公路55號"},
+{name:"阿英排骨飯",q:"高雄市鹽埕區富野路79-2號"},
+{name:"汕頭陽春麵",q:"高雄市鹽埕區壽星街12號"},
+{name:"天天沙茶火鍋",q:"高雄市七賢三路240號"},
+{name:"田記豆漿",q:"高雄市鹽埕區新樂街75之3號"},
+{name:"巴堂蜂蜜蛋糕",q:"高雄市鹽埕區大勇路127號"},
+{name:"樺達奶茶",q:"高雄市鹽埕區新樂街101號"}
 ];
 
 function render(){
 
 document.getElementById("list").innerHTML =
 places.map(p=>`
+
 <div class="card">
 
 <div class="name">${p.name}</div>
 <div class="addr">${p.q}</div>
 
 <div class="actions">
+
+<!-- 🧭 一鍵導航（最穩） -->
 <a class="nav"
 href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(p.q)}"
-target="_blank">🧭 導航</a>
+target="_blank">
+🧭 導航
+</a>
 
+<!-- 📍 搜尋地圖 -->
 <a class="map"
 href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.q)}"
-target="_blank">📍 地圖</a>
+target="_blank">
+📍 地圖
+</a>
+
+<!-- 🚗 路線（備用） -->
+<a class="route"
+href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(p.q)}"
+target="_blank">
+🚗 路線
+</a>
+
 </div>
 
 </div>
+
 `).join("");
 
 }
