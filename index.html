@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>高雄鹽埕美食</title>
+<title>高雄鹽埕美食導航 App</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <style>
 body{
@@ -20,11 +24,9 @@ header{
   font-weight:bold;
 }
 
-#topbar{
-  padding:10px;
-  text-align:center;
-  font-size:14px;
-  color:#666;
+#map{
+  height:45vh;
+  width:100%;
 }
 
 .card{
@@ -54,69 +56,96 @@ a{
 }
 
 .nav{background:#ff6b35;color:#fff;}
-.map{background:#eee;color:#333;}
-.route{background:#4CAF50;color:#fff;}
+.line{background:#06C755;color:#fff;}
 </style>
 </head>
 
 <body>
 
-<header>📍 高雄鹽埕美食</header>
+<header>📍 高雄鹽埕美食導航 App</header>
 
-<div id="topbar">
-👉 點「導航」會直接開 Google Maps App（最穩方式）
-</div>
+<div id="map"></div>
 
 <div id="list"></div>
 
 <script>
 
+// 📍 店家資料
 const places = [
-{name:"鹽埕鴨肉意麵",q:"高雄市鹽埕區大智路126號"},
-{name:"阿凡沙茶麻醬麵",q:"高雄市鹽埕區大智路107號"},
-{name:"老蔡虱目魚粥",q:"高雄市鹽埕區瀨南街201號"},
-{name:"阿財雞絲麵",q:"高雄市鹽埕區壽星街11號"},
-{name:"鴨肉本",q:"高雄市鹽埕區富野路107號"},
-{name:"鴨肉珍",q:"高雄市鹽埕區大公路55號"},
-{name:"阿英排骨飯",q:"高雄市鹽埕區富野路79-2號"},
-{name:"汕頭陽春麵",q:"高雄市鹽埕區壽星街12號"},
-{name:"天天沙茶火鍋",q:"高雄市七賢三路240號"},
-{name:"田記豆漿",q:"高雄市鹽埕區新樂街75之3號"},
-{name:"巴堂蜂蜜蛋糕",q:"高雄市鹽埕區大勇路127號"},
-{name:"樺達奶茶",q:"高雄市鹽埕區新樂街101號"}
+{name:"鹽埕鴨肉意麵",addr:"高雄市鹽埕區大智路126號",lat:22.6232,lng:120.2840},
+{name:"阿凡沙茶麻醬麵",addr:"高雄市鹽埕區大智路107號",lat:22.6228,lng:120.2836},
+{name:"老蔡虱目魚粥",addr:"高雄市鹽埕區瀨南街201號",lat:22.6219,lng:120.2852},
+{name:"阿財雞絲飯",addr:"高雄市鹽埕區壽星街11號",lat:22.6241,lng:120.2848},
+{name:"鴨肉本",addr:"高雄市鹽埕區富野路107號",lat:22.6250,lng:120.2855},
+{name:"鴨肉珍",addr:"高雄市鹽埕區大公路55號",lat:22.6238,lng:120.2829},
+{name:"阿英排骨飯",addr:"高雄市鹽埕區富野路79-2號",lat:22.6246,lng:120.2860}
 ];
 
+let userLat = null;
+let userLng = null;
+
+// 🗺 建立地圖（鹽埕區中心）
+const map = L.map('map').setView([22.623, 120.284], 15);
+
+// 🌍 OpenStreetMap底圖
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  maxZoom:19
+}).addTo(map);
+
+// 📍 店家 marker
+places.forEach(p=>{
+  L.marker([p.lat,p.lng])
+  .addTo(map)
+  .bindPopup(`<b>${p.name}</b><br>${p.addr}`);
+});
+
+// 📏 距離計算
+function distance(lat1,lng1,lat2,lng2){
+  const R=6371;
+  const dLat=(lat2-lat1)*Math.PI/180;
+  const dLng=(lng2-lng1)*Math.PI/180;
+  const a=
+    Math.sin(dLat/2)**2 +
+    Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+    Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+// 📄 清單
 function render(){
 
+let list = [...places];
+
+if(userLat){
+  list.forEach(p=>{
+    p.dis = distance(userLat,userLng,p.lat,p.lng);
+  });
+  list.sort((a,b)=>a.dis-b.dis);
+}
+
 document.getElementById("list").innerHTML =
-places.map(p=>`
+list.map(p=>`
 
 <div class="card">
 
 <div class="name">${p.name}</div>
-<div class="addr">${p.q}</div>
+<div class="addr">
+${p.addr}
+${p.dis ? `<br>📏 ${p.dis.toFixed(2)} km` : ""}
+</div>
 
 <div class="actions">
 
-<!-- 🧭 一鍵導航（最穩） -->
 <a class="nav"
-href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(p.q)}"
+href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(p.addr)}"
 target="_blank">
 🧭 導航
 </a>
 
-<!-- 📍 搜尋地圖 -->
-<a class="map"
-href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.q)}"
+<a class="line"
+href="https://social-plugins.line.me/lineit/share?text=${encodeURIComponent(p.name)}&url=${location.href}"
 target="_blank">
-📍 地圖
-</a>
-
-<!-- 🚗 路線（備用） -->
-<a class="route"
-href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(p.q)}"
-target="_blank">
-🚗 路線
+📲 LINE
 </a>
 
 </div>
@@ -125,6 +154,33 @@ target="_blank">
 
 `).join("");
 
+}
+
+// 📍 定位（關鍵修正版）
+if(navigator.geolocation){
+navigator.geolocation.getCurrentPosition(
+(pos)=>{
+
+userLat = pos.coords.latitude;
+userLng = pos.coords.longitude;
+
+// 📍 使用者 marker
+L.marker([userLat,userLng])
+.addTo(map)
+.bindPopup("📍 你的位置");
+
+map.setView([userLat,userLng],16);
+
+render();
+
+},
+(err)=>{
+console.log("定位失敗",err);
+render();
+}
+);
+}else{
+render();
 }
 
 render();
