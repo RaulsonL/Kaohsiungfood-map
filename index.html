@@ -11,14 +11,14 @@
 <style>
 body{margin:0;font-family:-apple-system,"Noto Sans TC";background:#f6f6f6;}
 header{background:#ff6b35;color:#fff;padding:12px;text-align:center;font-weight:bold;}
-#map{height:45vh;width:100%;}
+#map{height:42vh;width:100%;}
 .bar{display:flex;gap:6px;padding:8px;background:#fff;position:sticky;top:0;z-index:10;}
 button{flex:1;padding:10px;border:none;border-radius:8px;font-size:13px;}
 .primary{background:#ff6b35;color:#fff;}
 .gray{background:#eee;}
 .card{background:#fff;margin:10px;padding:12px;border-radius:10px;}
 .name{font-weight:bold;}
-.small{font-size:12px;color:#666;margin-top:4px;}
+.addr{font-size:12px;color:#666;margin-top:4px;}
 a{color:#ff6b35;font-weight:bold;text-decoration:none;}
 </style>
 </head>
@@ -31,40 +31,40 @@ a{color:#ff6b35;font-weight:bold;text-decoration:none;}
 
 <div class="bar">
 <button class="primary" onclick="locate()">📍 定位</button>
-<button class="gray" onclick="sortByDistance()">📏 最近</button>
+<button class="gray" onclick="sortDistance()">📏 最近</button>
 <button class="gray" onclick="shareLine()">📤 分享</button>
 </div>
 
-<div id="list"></div>
+<div id="list">載入中...</div>
 
 <script>
 
 const places = [
-"鹽埕鴨肉意麵",
-"阿凡沙茶麻醬麵",
-"老蔡虱目魚粥",
-"阿財雞絲麵",
-"鴨肉本",
-"鴨肉珍",
-"阿英排骨飯",
-"汕頭陽春麵",
-"天天沙茶火鍋",
-"阿姨蛋餅",
-"田記豆漿",
-"巴堂蜂蜜蛋糕",
-"樺達奶茶"
+{name:"鹽埕鴨肉意麵",addr:"高雄市鹽埕區育仁里大智路126號"},
+{name:"阿凡沙茶麻醬麵",addr:"高雄市鹽埕區光明里大智路107號"},
+{name:"老蔡虱目魚粥",addr:"高雄市鹽埕區中原里瀨南街201號"},
+{name:"阿財雞絲麵",addr:"高雄市鹽埕區壽星里壽星街11號"},
+{name:"鴨肉本",addr:"高雄市鹽埕區中山里富野路107號"},
+{name:"鴨肉珍",addr:"高雄市鹽埕區瀨南里大公路55號"},
+{name:"阿英排骨飯",addr:"高雄市鹽埕區中原里富野路79-2號"},
+{name:"汕頭陽春麵",addr:"高雄市鹽埕區壽星里壽星街12號"},
+{name:"天天沙茶火鍋",addr:"高雄市鹽埕區府北里七賢三路240號"},
+{name:"阿姨蛋餅",addr:"高雄市鼓山區鼓山一路5號之1"},
+{name:"田記豆漿",addr:"高雄市鹽埕區新樂街75之3號"},
+{name:"巴堂蜂蜜蛋糕",addr:"高雄市鹽埕區大勇路127號"},
+{name:"樺達奶茶",addr:"高雄市鹽埕區新樂街101號"}
 ];
 
 let map;
 let userLat,userLng;
-
 let markers=[];
 
-// 👉 把店名轉成真正座標（關鍵）
-async function geocode(name){
-const url=`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(name+" 高雄 鹽埕")}`;
+// 🔥 地址 → 精準座標（核心）
+async function geocode(addr){
+const url=`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}`;
 const res=await fetch(url);
 const data=await res.json();
+
 if(data && data[0]){
 return {
 lat:parseFloat(data[0].lat),
@@ -76,28 +76,28 @@ return null;
 
 async function init(){
 
-map=L.map('map').setView([22.623,120.284],16);
+map = L.map('map').setView([22.623,120.284],16);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
 attribution:'© OpenStreetMap'
 }).addTo(map);
 
-document.getElementById("list").innerHTML="載入中...";
+document.getElementById("list").innerHTML="📍 正在載入精準座標...";
 
-for(let name of places){
+for(let p of places){
 
-let pos=await geocode(name);
+let pos = await geocode(p.addr);
 
 if(pos){
 
-let marker=L.marker([pos.lat,pos.lng]).addTo(map)
-.bindPopup(`<b>${name}</b><br>
-<a target="_blank" href="https://www.google.com/maps/dir/?api=1&destination=${pos.lat},${pos.lng}">
+let marker = L.marker([pos.lat,pos.lng]).addTo(map)
+.bindPopup(`<b>${p.name}</b><br>
+<a target="_blank"
+href="https://www.google.com/maps/dir/?api=1&destination=${pos.lat},${pos.lng}">
 🧭 導航
 </a>`);
 
-markers.push({name,lat:pos.lat,lng:pos.lng,marker});
-
+markers.push({...p,...pos,marker});
 }
 }
 
@@ -106,11 +106,11 @@ render();
 
 function render(){
 
-document.getElementById("list").innerHTML=
+document.getElementById("list").innerHTML =
 markers.map(p=>`
 <div class="card" onclick="go(${p.lat},${p.lng})">
 <div class="name">${p.name}</div>
-<div class="small">已取得精準座標</div>
+<div class="addr">${p.addr}</div>
 
 <a target="_blank"
 href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}">
@@ -145,18 +145,21 @@ alert("距離計算完成");
 });
 }
 
-function sortByDistance(){
+function sortDistance(){
 markers.sort((a,b)=>(a.d||999)-(b.d||999));
 render();
 }
 
 function shareLine(){
-let text="📍高雄鹽埕精準美食地圖\n\n";
+let text="📍高雄鹽埕美食地圖\n\n";
+
 markers.forEach(p=>{
 text+=`${p.name}\nhttps://www.google.com/maps?q=${p.lat},${p.lng}\n\n`;
 });
 
-window.open("https://social-plugins.line.me/lineit/share?text="+encodeURIComponent(text));
+window.open(
+"https://social-plugins.line.me/lineit/share?text="+encodeURIComponent(text)
+);
 }
 
 init();
