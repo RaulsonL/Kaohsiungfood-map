@@ -1,96 +1,132 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>高雄鹽埕美食地圖</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>高雄鹽埕美食地圖</title>
 
-<style>
-body{margin:0;font-family:-apple-system,"Noto Sans TC";background:#f6f6f6;}
-header{background:#ff6b35;color:#fff;padding:12px;text-align:center;font-weight:bold;}
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-#map{width:100%;height:40vh;border:0;}
-
-.card{
-background:#fff;margin:10px;padding:12px;border-radius:10px;
-box-shadow:0 2px 6px rgba(0,0,0,0.08);
-}
-
-.name{font-weight:bold;}
-.addr{font-size:12px;color:#666;margin-top:4px;}
-
-.actions{display:flex;gap:6px;margin-top:8px;}
-
-a{
-flex:1;text-align:center;padding:8px;
-border-radius:8px;text-decoration:none;font-size:13px;
-}
-
-.nav{background:#ff6b35;color:#fff;}
-.map{background:#eee;color:#333;}
-</style>
+  <style>
+    body { margin:0; font-family: Arial; }
+    #map { height: 45vh; }
+    .list { padding: 10px; }
+    .card {
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+    }
+    button {
+      margin-top: 5px;
+      padding: 6px 10px;
+    }
+  </style>
 </head>
 
 <body>
 
-<header>📍 高雄鹽埕美食地圖</header>
+<h3 style="text-align:center;">🍜 高雄鹽埕美食地圖</h3>
 
-<!-- 📍 Google Maps 地圖 -->
-<iframe
-  src="https://www.google.com/maps/embed?pb=XXXX"
-  width="100%"
-  height="400"
-  style="border:0;"
-  loading="lazy"
-  referrerpolicy="no-referrer-when-downgrade">
-</iframe>
-
-<div id="list"></div>
+<div id="map"></div>
+<div class="list" id="list"></div>
 
 <script>
-
 const places = [
-{name:"鹽埕鴨肉意麵",q:"鹽埕鴨肉意麵 高雄市鹽埕區大智路126號"},
-{name:"阿凡沙茶麻醬麵",q:"阿凡沙茶麻醬麵 高雄市鹽埕區大智路107號"},
-{name:"老蔡虱目魚粥",q:"老蔡虱目魚粥 高雄市鹽埕區瀨南街201號"},
-{name:"阿財雞絲麵",q:"阿財雞絲麵 高雄市鹽埕區壽星街11號"},
-{name:"鴨肉本",q:"鴨肉本 高雄市鹽埕區富野路107號"},
-{name:"鴨肉珍",q:"鴨肉珍 高雄市鹽埕區大公路55號"},
-{name:"阿英排骨飯",q:"阿英排骨飯 高雄市鹽埕區富野路79-2號"},
-{name:"汕頭陽春麵",q:"汕頭陽春麵 高雄市鹽埕區壽星街12號"},
-{name:"天天沙茶火鍋",q:"天天沙茶火鍋 高雄市七賢三路240號"},
-{name:"阿姨蛋餅",q:"阿姨蛋餅 高雄市鼓山區鼓山一路5號1號"},
-{name:"田記豆漿",q:"田記豆漿 高雄市鹽埕區新樂街75之3號"},
-{name:"巴堂蜂蜜蛋糕",q:"巴堂蜂蜜蛋糕 高雄市鹽埕區大勇路127號"},
-{name:"樺達奶茶",q:"樺達奶茶 高雄市鹽埕區新樂街101號"}
+  { name: "鹽埕鴨肉意麵", lat: 22.6233, lng: 120.2840 },
+  { name: "阿凡沙茶麻醬麵", lat: 22.6225, lng: 120.2835 },
+  { name: "老蔡虱目魚粥", lat: 22.6218, lng: 120.2852 },
+  { name: "阿財雞絲飯", lat: 22.6241, lng: 120.2848 }
 ];
 
-function render(){
+let userLat = null;
+let userLng = null;
 
-document.getElementById("list").innerHTML =
-places.map(p=>`
-<div class="card">
+// 初始化地圖（高雄鹽埕）
+const map = L.map('map').setView([22.624, 120.284], 15);
 
-<div class="name">${p.name}</div>
-<div class="addr">${p.q}</div>
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19
+}).addTo(map);
 
-<div class="actions">
-<a class="nav"
-href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(p.q)}"
-target="_blank">🧭 導航</a>
+// 加 marker
+places.forEach(p => {
+  L.marker([p.lat, p.lng]).addTo(map)
+    .bindPopup(p.name);
+});
 
-<a class="map"
-href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.q)}"
-target="_blank">📍 地圖</a>
-</div>
-
-</div>
-`).join("");
-
+// 取得距離
+function getDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2-lat1) * Math.PI/180;
+  const dLon = (lon2-lon1) * Math.PI/180;
+  const a =
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-render();
+// 建立列表
+function renderList() {
+  const list = document.getElementById("list");
+  list.innerHTML = "";
 
+  let sorted = [...places];
+
+  if (userLat) {
+    sorted.forEach(p => {
+      p.distance = getDistance(userLat, userLng, p.lat, p.lng);
+    });
+    sorted.sort((a,b)=>a.distance-b.distance);
+  }
+
+  sorted.forEach(p => {
+    const div = document.createElement("div");
+    div.className = "card";
+
+    div.innerHTML = `
+      <b>${p.name}</b><br>
+      ${p.distance ? "距離：" + p.distance.toFixed(2) + " km" : ""}<br>
+
+      <button onclick="nav(${p.lat},${p.lng})">🧭 導航</button>
+      <button onclick="share('${p.name}')">📲 LINE分享</button>
+    `;
+
+    list.appendChild(div);
+  });
+}
+
+// 導航（最穩版本）
+function nav(lat, lng) {
+  window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
+}
+
+// LINE分享
+function share(name) {
+  const url = encodeURIComponent(location.href);
+  window.open(`https://social-plugins.line.me/lineit/share?url=${url}&text=推薦你吃：${name}`);
+}
+
+// 定位
+navigator.geolocation.getCurrentPosition(pos => {
+  userLat = pos.coords.latitude;
+  userLng = pos.coords.longitude;
+
+  L.marker([userLat, userLng]).addTo(map)
+    .bindPopup("📍 你的位置");
+
+  map.setView([userLat, userLng], 15);
+
+  renderList();
+}, () => {
+  renderList();
+});
+
+// 初始
+renderList();
 </script>
 
 </body>
