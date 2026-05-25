@@ -1,2 +1,2 @@
-# Kaohsiungfood-map
 高雄鹽埕美食地圖
+手機友善互動地圖 + LINE 分享 + 距離排序
