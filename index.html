@@ -16,13 +16,10 @@ header{background:#ff6b35;color:#fff;padding:12px;text-align:center;font-weight:
 button{flex:1;padding:10px;border:none;border-radius:8px;font-size:13px;}
 .primary{background:#ff6b35;color:#fff;}
 .gray{background:#eee;}
-.card{background:#fff;margin:10px;padding:12px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.08);}
+.card{background:#fff;margin:10px;padding:12px;border-radius:10px;}
 .name{font-weight:bold;}
-.tag{font-size:12px;color:#666;margin-top:4px;}
-.actions{display:flex;gap:6px;margin-top:8px;}
-a{flex:1;text-align:center;padding:6px;border-radius:6px;text-decoration:none;font-size:12px;}
-.nav{background:#ff6b35;color:#fff;}
-.map{background:#eee;color:#333;}
+.small{font-size:12px;color:#666;margin-top:4px;}
+a{color:#ff6b35;font-weight:bold;text-decoration:none;}
 </style>
 </head>
 
@@ -43,52 +40,82 @@ a{flex:1;text-align:center;padding:6px;border-radius:6px;text-decoration:none;fo
 <script>
 
 const places = [
-{name:"鹽埕鴨肉意麵",type:"正餐",lat:22.6232,lng:120.2841},
-{name:"阿凡沙茶麻醬麵",type:"正餐",lat:22.6235,lng:120.2840},
-{name:"老蔡虱目魚粥",type:"正餐",lat:22.6239,lng:120.2852},
-{name:"阿財雞絲麵",type:"正餐",lat:22.6242,lng:120.2850},
-{name:"鴨肉本",type:"正餐",lat:22.6228,lng:120.2835},
-{name:"鴨肉珍",type:"正餐",lat:22.6226,lng:120.2833},
-{name:"阿英排骨飯",type:"正餐",lat:22.6229,lng:120.2846},
-{name:"汕頭陽春麵",type:"正餐",lat:22.6230,lng:120.2851},
-{name:"天天沙茶火鍋",type:"正餐",lat:22.6245,lng:120.2860},
-{name:"田記豆漿",type:"早餐",lat:22.6216,lng:120.2836},
-{name:"樺達奶茶",type:"點心",lat:22.6221,lng:120.2839},
-{name:"巴堂蜂蜜蛋糕",type:"點心",lat:22.6220,lng:120.2840}
+"鹽埕鴨肉意麵",
+"阿凡沙茶麻醬麵",
+"老蔡虱目魚粥",
+"阿財雞絲麵",
+"鴨肉本",
+"鴨肉珍",
+"阿英排骨飯",
+"汕頭陽春麵",
+"天天沙茶火鍋",
+"阿姨蛋餅",
+"田記豆漿",
+"巴堂蜂蜜蛋糕",
+"樺達奶茶"
 ];
 
 let map;
 let userLat,userLng;
 
-function initMap(){
+let markers=[];
 
-map = L.map('map').setView([22.623,120.284],16);
+// 👉 把店名轉成真正座標（關鍵）
+async function geocode(name){
+const url=`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(name+" 高雄 鹽埕")}`;
+const res=await fetch(url);
+const data=await res.json();
+if(data && data[0]){
+return {
+lat:parseFloat(data[0].lat),
+lng:parseFloat(data[0].lon)
+};
+}
+return null;
+}
+
+async function init(){
+
+map=L.map('map').setView([22.623,120.284],16);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
 attribution:'© OpenStreetMap'
 }).addTo(map);
 
-places.forEach(p=>{
-L.marker([p.lat,p.lng])
-.addTo(map)
-.bindPopup(`<b>${p.name}</b><br>🚗 <a href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}" target="_blank">導航</a>`);
-});
+document.getElementById("list").innerHTML="載入中...";
+
+for(let name of places){
+
+let pos=await geocode(name);
+
+if(pos){
+
+let marker=L.marker([pos.lat,pos.lng]).addTo(map)
+.bindPopup(`<b>${name}</b><br>
+<a target="_blank" href="https://www.google.com/maps/dir/?api=1&destination=${pos.lat},${pos.lng}">
+🧭 導航
+</a>`);
+
+markers.push({name,lat:pos.lat,lng:pos.lng,marker});
+
+}
+}
 
 render();
 }
 
 function render(){
 
-document.getElementById("list").innerHTML =
-places.map(p=>`
+document.getElementById("list").innerHTML=
+markers.map(p=>`
 <div class="card" onclick="go(${p.lat},${p.lng})">
 <div class="name">${p.name}</div>
-<div class="tag">分類：${p.type}</div>
+<div class="small">已取得精準座標</div>
 
-<div class="actions">
-<a class="nav" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}" target="_blank">🧭 導航</a>
-<a class="map" href="https://maps.google.com/?q=${p.lat},${p.lng}" target="_blank">📍 地圖</a>
-</div>
+<a target="_blank"
+href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}">
+🧭 一鍵導航
+</a>
 </div>
 `).join("");
 }
@@ -110,31 +137,29 @@ navigator.geolocation.getCurrentPosition(p=>{
 userLat=p.coords.latitude;
 userLng=p.coords.longitude;
 
-places.forEach(x=>{
+markers.forEach(x=>{
 x.d=distance(userLat,userLng,x.lat,x.lng);
 });
 
-alert("已取得距離");
+alert("距離計算完成");
 });
 }
 
 function sortByDistance(){
-places.sort((a,b)=>(a.d||999)-(b.d||999));
+markers.sort((a,b)=>(a.d||999)-(b.d||999));
 render();
 }
 
 function shareLine(){
-let text="📍高雄鹽埕美食地圖\n\n";
-places.forEach(p=>{
+let text="📍高雄鹽埕精準美食地圖\n\n";
+markers.forEach(p=>{
 text+=`${p.name}\nhttps://www.google.com/maps?q=${p.lat},${p.lng}\n\n`;
 });
 
-window.open(
-"https://social-plugins.line.me/lineit/share?text="+encodeURIComponent(text)
-);
+window.open("https://social-plugins.line.me/lineit/share?text="+encodeURIComponent(text));
 }
 
-initMap();
+init();
 
 </script>
 
