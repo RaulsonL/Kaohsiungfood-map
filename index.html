@@ -1,97 +1,179 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>高雄旅遊導航（Google Maps版）</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>高雄鹽埕美食導航PWA</title>
+
+<link rel="manifest" href="manifest.json">
 
 <style>
-body{margin:0;font-family:-apple-system,"Noto Sans TC";background:#f6f6f6;}
-header{background:#ff6b35;color:#fff;padding:12px;text-align:center;font-weight:bold;}
+body { margin:0; font-family:sans-serif; background:#f7f7f7; }
 
-#map{width:100%;height:40vh;border:0;}
-
-.card{
-background:#fff;margin:10px;padding:12px;border-radius:10px;
-box-shadow:0 2px 6px rgba(0,0,0,0.08);
+header {
+  background:#ff6b35; color:white;
+  padding:14px; text-align:center;
+  font-weight:bold;
 }
 
-.name{font-weight:bold;}
-.addr{font-size:12px;color:#666;margin-top:4px;}
-
-.actions{display:flex;gap:6px;margin-top:8px;}
-
-a{
-flex:1;text-align:center;padding:8px;
-border-radius:8px;text-decoration:none;font-size:13px;
+.mode-switch {
+  display:flex; gap:10px; padding:10px;
 }
 
-.nav{background:#ff6b35;color:#fff;}
-.map{background:#eee;color:#333;}
+.mode-switch button {
+  flex:1; padding:12px;
+  border:none; border-radius:10px;
+  background:#ddd; font-weight:bold;
+}
+
+.mode-switch button.active {
+  background:#ff6b35; color:white;
+}
+
+#listView { padding:10px; }
+
+.card {
+  background:white; padding:12px;
+  margin-bottom:10px;
+  border-radius:12px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
+  transition:0.2s;
+}
+
+.card.active {
+  border:2px solid #ff6b35;
+  transform:scale(1.02);
+}
+
+.btns { display:flex; gap:8px; margin-top:8px; }
+
+.btns button {
+  flex:1; padding:8px;
+  border:none; border-radius:8px;
+  background:#eee;
+}
+
+.map-wrapper {
+  width:100%;
+  height:75vh;
+}
+
+.map-wrapper iframe {
+  width:100%; height:100%; border:0;
+}
 </style>
 </head>
 
 <body>
 
-<header>📍 高雄旅遊導航（Google Maps版）</header>
+<header>📍 高雄鹽埕美食導航 PWA</header>
 
-<!-- 🗺️ Google 地圖視窗 -->
-<iframe
-  width="100%"
-  height="220"
-  style="border:0"
-  loading="lazy"
-  allowfullscreen
-  referrerpolicy="no-referrer-when-downgrade"
-  src="https://www.google.com/maps?q=高雄市鹽埕區&output=embed">
-</iframe>
+<div class="mode-switch">
+  <button id="btnList" class="active">📋 清單</button>
+  <button id="btnMap">🗺️ 地圖</button>
+</div>
 
-<div id="list"></div>
+<div id="listView"></div>
+
+<div id="mapView" style="display:none;">
+  <div class="map-wrapper">
+    <iframe src="https://www.google.com/maps/d/embed?mid=1nyBowDFbN1jZVVnFNkDkqw9dXaoVX6s&ehbc=2E312F"></iframe>
+  </div>
+</div>
 
 <script>
-
-const places = [
-{name:"鹽埕鴨肉意麵",q:"鹽埕鴨肉意麵 高雄市鹽埕區大智路126號"},
-{name:"阿凡沙茶麻醬麵",q:"阿凡沙茶麻醬麵 高雄市鹽埕區大智路107號"},
-{name:"老蔡虱目魚粥",q:"老蔡虱目魚粥 高雄市鹽埕區瀨南街201號"},
-{name:"阿財雞絲麵",q:"阿財雞絲麵 高雄市鹽埕區壽星街11號"},
-{name:"鴨肉本",q:"鴨肉本 高雄市鹽埕區富野路107號"},
-{name:"鴨肉珍",q:"鴨肉珍 高雄市鹽埕區大公路55號"},
-{name:"阿英排骨飯",q:"阿英排骨飯 高雄市鹽埕區富野路79-2號"},
-{name:"汕頭陽春麵",q:"汕頭陽春麵 高雄市鹽埕區壽星街12號"},
-{name:"天天沙茶火鍋",q:"天天沙茶火鍋 高雄市七賢三路240號"},
-{name:"阿姨蛋餅",q:"阿姨蛋餅 高雄市鼓山區鼓山一路5號1號"},
-{name:"田記豆漿",q:"田記豆漿 高雄市鹽埕區新樂街75之3號"},
-{name:"巴堂蜂蜜蛋糕",q:"巴堂蜂蜜蛋糕 高雄市鹽埕區大勇路127號"},
-{name:"樺達奶茶",q:"樺達奶茶 高雄市鹽埕區新樂街101號"}
+// 📍 店家資料（含簡單經緯度）
+const spots = [
+{name:"鹽埕鴨肉意麵",addr:"大智路126號",lat:22.6273,lng:120.2841},
+{name:"阿凡沙茶麻醬麵",addr:"大智路107號",lat:22.6275,lng:120.2838},
+{name:"老蔡虱目魚粥",addr:"瀨南街201號",lat:22.6268,lng:120.2852},
+{name:"阿財雞絲麵",addr:"壽星街11號",lat:22.6281,lng:120.2849},
+{name:"鴨肉本",addr:"富野路107號",lat:22.6279,lng:120.2855},
+{name:"鴨肉珍",addr:"大公路55號",lat:22.6265,lng:120.2835},
+{name:"阿英排骨飯",addr:"富野路79-2號",lat:22.6270,lng:120.2850},
+{name:"汕頭陽春麵",addr:"壽星街12號",lat:22.6280,lng:120.2848},
+{name:"天天沙茶火鍋",addr:"七賢三路240號",lat:22.6249,lng:120.2901},
+{name:"阿姨蛋餅",addr:"鼓山一路5號之1",lat:22.6255,lng:120.2810},
+{name:"田記豆漿",addr:"新樂街75之3號",lat:22.6283,lng:120.2842},
+{name:"巴堂蜂蜜蛋糕",addr:"大勇路127號",lat:22.6271,lng:120.2839},
+{name:"樺達奶茶",addr:"新樂街101號",lat:22.6285,lng:120.2843}
 ];
 
-function render(){
+let userLat=0, userLng=0;
 
-document.getElementById("list").innerHTML =
-places.map(p=>`
-<div class="card">
+// 📍 GPS
+navigator.geolocation.getCurrentPosition(pos=>{
+  userLat=pos.coords.latitude;
+  userLng=pos.coords.longitude;
+  render();
+});
 
-<div class="name">${p.name}</div>
-<div class="addr">${p.q}</div>
-
-<div class="actions">
-<a class="nav"
-href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(p.q)}"
-target="_blank">🧭 導航</a>
-
-<a class="map"
-href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.q)}"
-target="_blank">📍 地圖</a>
-</div>
-
-</div>
-`).join("");
-
+function dist(lat1,lng1,lat2,lng2){
+  const R=6371;
+  const dLat=(lat2-lat1)*Math.PI/180;
+  const dLng=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+
+    Math.cos(lat1*Math.PI/180)*
+    Math.cos(lat2*Math.PI/180)*
+    Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
-render();
+function render(){
+  const sorted=[...spots].sort((a,b)=>
+    dist(userLat,userLng,a.lat,a.lng)-
+    dist(userLat,userLng,b.lat,b.lng)
+  );
 
+  document.getElementById("listView").innerHTML =
+    sorted.map(s=>`
+      <div class="card" id="c_${s.name}">
+        <b>${s.name}</b><br/>
+        <small>${s.addr}</small>
+
+        <div class="btns">
+          <button onclick="nav('${s.addr}')">🚗導航</button>
+          <button onclick="line('${s.name}','${s.addr}')">LINE</button>
+        </div>
+      </div>
+    `).join("");
+}
+
+function nav(addr){
+  window.open("https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(addr));
+}
+
+function line(n,a){
+  window.open("https://line.me/R/msg/text/?"+encodeURIComponent(n+" "+a));
+}
+
+// 🔁 切換
+const btnList=document.getElementById("btnList");
+const btnMap=document.getElementById("btnMap");
+
+btnList.onclick=()=>{
+  listView.style.display="block";
+  mapView.style.display="none";
+  btnList.classList.add("active");
+  btnMap.classList.remove("active");
+  localStorage.setItem("mode","list");
+}
+
+btnMap.onclick=()=>{
+  listView.style.display="none";
+  mapView.style.display="block";
+  btnMap.classList.add("active");
+  btnList.classList.remove("active");
+  localStorage.setItem("mode","map");
+}
+
+// 記憶模式
+if(localStorage.getItem("mode")==="map") btnMap.click();
+
+// PWA SW
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js");
+}
 </script>
 
 </body>
