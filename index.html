@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>高雄旅遊導航（穩定版）</title>
+<title>高雄鹽埕美食路線 App</title>
 
 <style>
 body{
@@ -15,16 +15,15 @@ body{
 header{
   background:#ff6b35;
   color:#fff;
-  padding:12px;
+  padding:14px;
   text-align:center;
   font-weight:bold;
 }
 
-#topbar{
-  padding:10px;
-  text-align:center;
-  font-size:14px;
-  color:#666;
+.section{
+  padding:10px 12px;
+  font-weight:bold;
+  color:#444;
 }
 
 .card{
@@ -53,82 +52,127 @@ a{
   font-size:13px;
 }
 
-/* 🚀 強化導航按鈕 */
-.nav{
-  background:#ff6b35;
-  color:#fff;
-}
+.nav{background:#ff6b35;color:#fff;}
+.line{background:#06C755;color:#fff;}
 
-/* 📍 修正 map 樣式 */
-.map{
-  background:#eee;
-  color:#333;
+.routeBtn{
+  display:block;
+  margin:10px;
+  padding:12px;
+  background:#333;
+  color:#fff;
+  text-align:center;
+  border-radius:10px;
+  text-decoration:none;
 }
 </style>
 </head>
 
 <body>
 
-<header>📍 高雄旅遊導航（穩定版）</header>
+<header>🍜 高雄鹽埕一日美食路線</header>
 
-<div id="topbar">
-👉 點「導航」會直接開 Google Maps App（最穩）
-</div>
+<a class="routeBtn" href="#"
+onclick="shareRoute()">
+📲 分享整條美食路線（LINE）
+</a>
 
-<div id="list"></div>
+<div id="content"></div>
 
 <script>
 
-const places = [
-{name:"鹽埕鴨肉意麵",q:"高雄市鹽埕區大智路126號"},
-{name:"阿凡沙茶麻醬麵",q:"高雄市鹽埕區大智路107號"},
-{name:"老蔡虱目魚粥",q:"高雄市鹽埕區瀨南街201號"},
-{name:"阿財雞絲麵",q:"高雄市鹽埕區壽星街11號"},
-{name:"鴨肉本",q:"高雄市鹽埕區富野路107號"},
-{name:"鴨肉珍",q:"高雄市鹽埕區大公路55號"},
-{name:"阿英排骨飯",q:"高雄市鹽埕區富野路79-2號"},
-{name:"汕頭陽春麵",q:"高雄市鹽埕區壽星街12號"},
-{name:"天天沙茶火鍋",q:"高雄市七賢三路240號"},
-{name:"田記豆漿",q:"高雄市鹽埕區新樂街75之3號"},
-{name:"巴堂蜂蜜蛋糕",q:"高雄市鹽埕區大勇路127號"},
-{name:"樺達奶茶",q:"高雄市鹽埕區新樂街101號"}
+// 🍽 路線設計（已排好順序）
+const route = [
+{
+type:"早餐",
+items:[
+{name:"田記豆漿",addr:"高雄市鹽埕區新樂街75之3號"},
+{name:"阿姨蛋餅",addr:"高雄市鼓山區鼓山一路5號1號"}
+]
+},
+{
+type:"午餐",
+items:[
+{name:"鴨肉本",addr:"高雄市鹽埕區富野路107號"},
+{name:"鴨肉珍",addr:"高雄市鹽埕區大公路55號"},
+{name:"鹽埕鴨肉意麵",addr:"高雄市鹽埕區大智路126號"}
+]
+},
+{
+type:"點心",
+items:[
+{name:"樺達奶茶",addr:"高雄市鹽埕區新樂街101號"},
+{name:"巴堂蜂蜜蛋糕",addr:"高雄市鹽埕區大勇路127號"}
+]
+},
+{
+type:"晚餐",
+items:[
+{name:"天天沙茶火鍋",addr:"高雄市七賢三路240號"},
+{name:"阿英排骨飯",addr:"高雄市鹽埕區富野路79-2號"}
+]
+}
 ];
 
+// 📄 渲染
 function render(){
 
-document.getElementById("list").innerHTML =
-places.map(p=>`
+let html = "";
 
+route.forEach(sec=>{
+
+html += `<div class="section">🍴 ${sec.type}</div>`;
+
+sec.items.forEach(p=>{
+
+html += `
 <div class="card">
 
 <div class="name">${p.name}</div>
-<div class="addr">${p.q}</div>
+<div class="addr">${p.addr}</div>
 
 <div class="actions">
 
-<!-- 🧭 導航（最穩 + 強制 Google Maps App） -->
 <a class="nav"
-href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(p.q)}"
+href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(p.addr)}"
 target="_blank">
 🧭 導航
 </a>
 
-<!-- 📍 地圖搜尋 -->
-<a class="map"
-href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.q)}"
+<a class="line"
+href="https://social-plugins.line.me/lineit/share?text=${encodeURIComponent(p.name)}&url=${location.href}"
 target="_blank">
-📍 地圖
+📲 LINE
 </a>
 
 </div>
 
 </div>
+`;
 
-`).join("");
+});
+
+});
+
+document.getElementById("content").innerHTML = html;
 
 }
 
 render();
+
+// 📲 分享整條路線
+function shareRoute(){
+const text =
+"推薦高雄鹽埕美食路線：田記豆漿 → 鴨肉本 → 樺達奶茶 → 天天沙茶火鍋";
+
+const url =
+"https://social-plugins.line.me/lineit/share?text="
++ encodeURIComponent(text)
++ "&url="
++ encodeURIComponent(location.href);
+
+window.open(url,"_blank");
+}
 
 </script>
 
